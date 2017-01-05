@@ -51,8 +51,7 @@ public class ControllerCamera : MonoBehaviour
         m_AbsoluteY += m_Inputs.y;
         m_AbsoluteY = Mathf.Clamp(m_AbsoluteY, -m_YClamp, m_YClamp);
 
-        transform.rotation = Quaternion.Euler(m_AbsoluteY, m_Player.transform.rotation.eulerAngles.y, m_Player.transform.rotation.eulerAngles.z);
-        //m_Player.transform.rotation = Quaternion.Euler(m_Player.transform.rotation.eulerAngles.x, m_AbsoluteX, m_Player.transform.rotation.eulerAngles.z);
-        m_Player.transform.rotation = Quaternion.Euler(0, m_AbsoluteX, 0);
+        transform.localRotation = Quaternion.Euler(m_AbsoluteY, 0, 0);
+        m_Player.transform.localRotation = Quaternion.Euler(0, m_AbsoluteX, 0);
     }
 }

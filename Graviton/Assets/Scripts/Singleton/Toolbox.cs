@@ -16,6 +16,8 @@ public class Toolbox : Singleton<Toolbox>
         DontDestroyOnLoad(this);
     }
 
+    public int m_Gravity = 20;
+
     static public T RegisterComponent<T>() where T : Component
     {
         return Instance.GetOrAddComponent<T>();
