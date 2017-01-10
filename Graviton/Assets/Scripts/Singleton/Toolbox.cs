@@ -11,12 +11,15 @@ public class Toolbox : Singleton<Toolbox>
     //Make sure constructor cannot be used, true singleton
     protected Toolbox(){}
 
+    public float m_Gravity = 20;
+    public int m_CurrentCheckpoint = 1;
+    public bool m_IsPaused = false;
+
     void Awake()
     {
+        m_Gravity = Physics.gravity.magnitude;
         DontDestroyOnLoad(this);
     }
-
-    public int m_Gravity = 20;
 
     static public T RegisterComponent<T>() where T : Component
     {

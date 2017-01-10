@@ -29,8 +29,11 @@ public class ControllerCamera : MonoBehaviour
 	
 	void Update ()
     {
-        RotationUpdate();
-	}
+        if (!Toolbox.Instance.m_IsPaused)
+        {
+            RotationUpdate();
+        }
+    }
 
     void RotationUpdate()
     {
@@ -51,7 +54,22 @@ public class ControllerCamera : MonoBehaviour
         m_AbsoluteY += m_Inputs.y;
         m_AbsoluteY = Mathf.Clamp(m_AbsoluteY, -m_YClamp, m_YClamp);
 
-        transform.localRotation = Quaternion.Euler(m_AbsoluteY, 0, 0);
+        transform.localRotation = Quaternion.Euler(m_AbsoluteY, Mathf.Lerp(transform.localEulerAngles.y, 0, 100 * Time.deltaTime), Mathf.Lerp(transform.localEulerAngles.z, 0, 100 * Time.deltaTime));
         m_Player.transform.localRotation = Quaternion.Euler(0, m_AbsoluteX, 0);
+    }
+
+    public float GetAbsoluteY()
+    {
+        return m_AbsoluteY;
+    }
+
+    public void SetAbsoluteY(float value)
+    {
+        m_AbsoluteY = value;
+    }
+
+    public float GetAbsoluteX()
+    {
+        return m_AbsoluteX;
     }
 }

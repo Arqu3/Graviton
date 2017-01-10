@@ -452,8 +452,9 @@ PlayerSettings:
   XboxOneAllowedProductIds: []
   XboxOnePersistentLocalStorageSize: 0
   vrEditorSettings: {}
-  cloudServicesEnabled: {}
-  cloudProjectId: 
-  projectName: 
-  organizationId: 
+  cloudServicesEnabled:
+    UNet: 1
+  cloudProjectId: 2c6480e8-dc3d-4bdf-aea1-92846779a52b
+  projectName: Graviton
+  organizationId: arqu
   cloudEnabled: 0
