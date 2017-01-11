@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody), typeof(Collider), typeof(ControllerCheckpoint))]
+[RequireComponent(/*typeof(Rigidbody),*/ typeof(Collider), typeof(ControllerCheckpoint))]
 public class ControllerPlayer : MonoBehaviour
 {
     //Public vars
@@ -36,6 +36,7 @@ public class ControllerPlayer : MonoBehaviour
     private bool m_IsGrapple = false;
     private RaycastHit m_HookHit;
     private GameObject m_Reticle;
+    private GameObject m_GravityReticle;
     private int m_HookMode = 0;
     private Vector3 m_GrappleDir = Vector3.zero;
 
@@ -43,7 +44,7 @@ public class ControllerPlayer : MonoBehaviour
     {
         m_HookTimer = m_HookCooldown;
 
-        m_Rigidbody = GetComponent<Rigidbody>();
+        m_Rigidbody = transform.parent.GetComponent<Rigidbody>();
         m_Collider = GetComponent<Collider>();
         m_Checkpoints = GetComponent<ControllerCheckpoint>();
 
@@ -57,6 +58,7 @@ public class ControllerPlayer : MonoBehaviour
             Debug.Log("Player couldn't find camera!");
 
         m_Reticle = GameObject.Find("Reticle");
+        m_GravityReticle = GameObject.Find("GravityReticle");
 	}
 	
 	void Update()
@@ -80,10 +82,6 @@ public class ControllerPlayer : MonoBehaviour
     {
         if (m_Rigidbody.velocity.magnitude < 1.0f && m_IsOnGround)
             m_Rigidbody.velocity = Vector3.zero;
-
-        //Vector3 fwd = Camera.main.transform.forward;
-        //fwd.y = 0.0f;
-        //Quaternion rot = Quaternion.LookRotation(fwd);
 
         if (m_IsAirMovement)
         {
@@ -164,31 +162,47 @@ public class ControllerPlayer : MonoBehaviour
 
     void GravityUpdate()
     {
-        if (RaycastInfo(m_Camera.transform.position, m_Camera.transform.forward, out m_RotationHit, 1.5f))
+        if (Input.GetKey(KeyCode.LeftShift) || m_IsGrapple)
         {
-            if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
+            if (!m_GravityReticle.activeSelf)
+                m_GravityReticle.SetActive(true);
+
+            if (RaycastInfo(m_Camera.transform.position, m_Camera.transform.forward, out m_RotationHit, 1.5f))
             {
-                UpdateGravity(m_RotationHit.normal);
+                if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
+                {
+                    UpdateGravity(m_RotationHit.normal);
+                }
+            }
+            if (RaycastInfo(transform.position, m_Rigidbody.velocity.normalized, out m_RotationHit, 1.5f))
+            {
+                if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
+                {
+                    UpdateGravity(m_RotationHit.normal);
+                }
             }
         }
-        if (RaycastInfo(transform.position, m_Rigidbody.velocity.normalized, out m_RotationHit, 1.5f))
+        else
         {
-            if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
-            {
-                UpdateGravity(m_RotationHit.normal);
-            }
+            if (m_GravityReticle.activeSelf)
+                m_GravityReticle.SetActive(false);
         }
     }
 
     void UpdateGravity(Vector3 dir)
     {
-        Vector3 pos = transform.position;
-        Vector3 fwd = m_Camera.transform.forward;
+        //Vector3 fwd = m_Camera.transform.forward;
+        //Quaternion rot = m_Camera.transform.rotation;
+        //Vector3 euler = m_Camera.transform.eulerAngles;
+        Vector3 point = m_Camera.transform.position + m_Camera.transform.forward * 2;
         m_GravityTransform.rotation = Quaternion.FromToRotation(Vector3.up, dir);
-        transform.position = pos;
+        transform.localPosition = Vector3.zero;
         m_Rigidbody.velocity = transform.up.normalized * 5;
         Physics.gravity = -dir * Toolbox.Instance.m_Gravity;
-        m_Camera.transform.forward = fwd;
+        //m_Camera.transform.forward = fwd;
+        //m_Camera.transform.rotation = rot;
+        //m_Camera.transform.eulerAngles = euler;
+        m_Camera.transform.LookAt(point);
         m_Camera.SetAbsoluteY(m_Camera.transform.localEulerAngles.x);
     }
 
@@ -258,11 +272,16 @@ public class ControllerPlayer : MonoBehaviour
 
     public void InterruptGrapple()
     {
-        m_IsHookCD = true;
-        m_IsGrapple = false;
-        m_Rigidbody.velocity = Vector3.zero;
-        if (m_Hook)
-            Destroy(m_Hook);
+        if (m_IsGrapple)
+        {
+            m_IsHookCD = true;
+            m_IsGrapple = false;
+            m_Rigidbody.velocity = Vector3.zero;
+            if (m_Hook)
+                Destroy(m_Hook.gameObject);
+
+            Debug.Log("Interrupted grapple!");
+        }
     }
 
     public void SetGrapple(Vector3 dir)
@@ -273,23 +292,10 @@ public class ControllerPlayer : MonoBehaviour
 
     public void ResetPosition()
     {
-        transform.position = m_Checkpoints.GetCurrentTransform().position;
+        transform.parent.position = m_Checkpoints.GetCurrentTransform().position;
         UpdateGravity(m_Checkpoints.GetCurrentSpawnDirection());
         m_Rigidbody.velocity = Vector3.zero;
         InterruptGrapple();
-    }
-
-    void OnCollisionEnter(Collision col)
-    {
-        if (col.gameObject.tag != "Hook")
-        {
-            if (m_IsGrapple)
-            {
-                InterruptGrapple();
-                if (m_Hook)
-                    Destroy(m_Hook.gameObject);
-            }
-        }
     }
 
     /// <summary>

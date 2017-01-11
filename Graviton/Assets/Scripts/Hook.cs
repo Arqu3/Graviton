@@ -36,7 +36,7 @@ public class Hook : MonoBehaviour
     {
         if (m_Player)
         {
-            if (Vector3.Distance(transform.position, m_Player.transform.position) > m_Distance && !m_HasHit)
+            if (Vector3.Distance(transform.position, m_Player.transform.position) > m_Distance * 1.1f && !m_HasHit)
             {
                 Destroy(gameObject);
             }

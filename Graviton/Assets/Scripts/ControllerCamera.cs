@@ -68,6 +68,11 @@ public class ControllerCamera : MonoBehaviour
         m_AbsoluteY = value;
     }
 
+    public void SetAbsoluteX(float value)
+    {
+        m_AbsoluteX = value;
+    }
+
     public float GetAbsoluteX()
     {
         return m_AbsoluteX;

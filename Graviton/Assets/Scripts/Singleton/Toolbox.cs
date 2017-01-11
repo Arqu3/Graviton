@@ -21,6 +21,11 @@ public class Toolbox : Singleton<Toolbox>
         DontDestroyOnLoad(this);
     }
 
+    public void ResetGravity()
+    {
+        Physics.gravity = new Vector3(0, -1, 0) * m_Gravity;
+    }
+
     static public T RegisterComponent<T>() where T : Component
     {
         return Instance.GetOrAddComponent<T>();

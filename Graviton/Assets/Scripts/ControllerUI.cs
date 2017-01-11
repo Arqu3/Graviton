@@ -47,6 +47,7 @@ public class ControllerUI : MonoBehaviour
 
     public void Restart()
     {
+        Toolbox.Instance.ResetGravity();
         TogglePaused();
         SceneManager.LoadScene(0);
     }
