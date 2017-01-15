@@ -6,8 +6,6 @@ using UnityEngine;
 public class ControllerCamera : MonoBehaviour
 {
     //Public vars
-    public bool m_InvertY = true;
-    public Vector2 m_Sensitivity = new Vector2(3, 1);
     public float m_YClamp = 70.0f;
 
     //Component vars
@@ -22,7 +20,6 @@ public class ControllerCamera : MonoBehaviour
 	void Start ()
     {
         m_Player = FindObjectOfType<ControllerPlayer>();
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -38,12 +35,12 @@ public class ControllerCamera : MonoBehaviour
     void RotationUpdate()
     {
         m_InvertValue = Mathf.Clamp(m_InvertValue, -1, 1);
-        if (m_InvertY)
+        if (!Toolbox.Instance.m_IsYInverted)
             m_InvertValue = -1;
         else
             m_InvertValue = 1;
 
-        m_Inputs = new Vector2(Input.GetAxis("Mouse X") * m_Sensitivity.x, Input.GetAxis("Mouse Y") * m_Sensitivity.y * m_InvertValue);
+        m_Inputs = new Vector2(Input.GetAxis("Mouse X") * Toolbox.Instance.m_SensitivityX, Input.GetAxis("Mouse Y") * Toolbox.Instance.m_SensitivityY * m_InvertValue);
 
         m_AbsoluteX += m_Inputs.x;
         if (m_AbsoluteX >= 360)
@@ -53,8 +50,8 @@ public class ControllerCamera : MonoBehaviour
 
         m_AbsoluteY += m_Inputs.y;
         m_AbsoluteY = Mathf.Clamp(m_AbsoluteY, -m_YClamp, m_YClamp);
-
-        transform.localRotation = Quaternion.Euler(m_AbsoluteY, Mathf.Lerp(transform.localEulerAngles.y, 0, 100 * Time.deltaTime), Mathf.Lerp(transform.localEulerAngles.z, 0, 100 * Time.deltaTime));
+        float val = 100;
+        transform.localRotation = Quaternion.Euler(m_AbsoluteY, Mathf.Lerp(transform.localEulerAngles.y, 0, val * Time.deltaTime), Mathf.Lerp(transform.localEulerAngles.z, 0, val * Time.deltaTime));
         m_Player.transform.localRotation = Quaternion.Euler(0, m_AbsoluteX, 0);
     }
 
@@ -76,5 +73,20 @@ public class ControllerCamera : MonoBehaviour
     public float GetAbsoluteX()
     {
         return m_AbsoluteX;
+    }
+
+    public void SetSensX(float value)
+    {
+        Toolbox.Instance.m_SensitivityX = value;
+    }
+
+    public void SetSensY(float value)
+    {
+        Toolbox.Instance.m_SensitivityY = value;
+    }
+
+    public void SetInvertY(bool state)
+    {
+        Toolbox.Instance.m_IsYInverted = state;
     }
 }

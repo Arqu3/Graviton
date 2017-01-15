@@ -36,7 +36,7 @@ public class Checkpoint : MonoBehaviour
         if (col.gameObject.tag == "Player")
         {
             Toolbox.Instance.m_CurrentCheckpoint = m_ID;
-            Debug.Log("Set current checkpoint to " + m_ID);
+            //Debug.Log("Set current checkpoint to " + m_ID);
         }
     }
 }

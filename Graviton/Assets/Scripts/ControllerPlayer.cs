@@ -27,16 +27,21 @@ public class ControllerPlayer : MonoBehaviour
     private RaycastHit m_RotationHit;
     private Transform m_GravityTransform;
     private ControllerCamera m_Camera;
+    private Quaternion m_ToRotation;
+    private bool m_WillRotate = false;
+    private bool m_SameObject = false;
+    private bool m_CanCheck = true;
 
     //Hook vars
     private float m_HookTimer = 0.0f;
     private Hook m_Hook;
-    private GameObject m_HookTransform;
+    private Transform m_HookTransform;
     private bool m_IsHookCD = false;
     private bool m_IsGrapple = false;
     private RaycastHit m_HookHit;
     private GameObject m_Reticle;
     private GameObject m_GravityReticle;
+    private RectTransform m_HookChargebar;
     private int m_HookMode = 0;
     private Vector3 m_GrappleDir = Vector3.zero;
 
@@ -53,21 +58,20 @@ public class ControllerPlayer : MonoBehaviour
         m_Camera = FindObjectOfType<ControllerCamera>();
 
         if (m_Camera)
-            m_HookTransform = m_Camera.transform.FindChild("Hook").gameObject;
+            m_HookTransform = m_Camera.transform.FindChild("Hook");
         else
             Debug.Log("Player couldn't find camera!");
 
         m_Reticle = GameObject.Find("Reticle");
         m_GravityReticle = GameObject.Find("GravityReticle");
+        m_HookChargebar = GameObject.Find("Foreground").GetComponent<RectTransform>();
+        
 	}
 	
 	void Update()
     {
         if (!Toolbox.Instance.m_IsPaused)
         {
-            if (transform.position.y < -15f)
-                transform.position = new Vector3(0, 5, 0);
-
             MovementUpdate();
 
             JumpUpdate();
@@ -98,7 +102,7 @@ public class ControllerPlayer : MonoBehaviour
 
     void JumpUpdate()
     {
-        if (CheckGround())
+        if (GroundCheck())
         {
             m_IsOnGround = true;
             m_Rigidbody.useGravity = false;
@@ -121,10 +125,9 @@ public class ControllerPlayer : MonoBehaviour
         }
     }
 
-    bool CheckGround()
+    bool GroundCheck(float distance = 1.1f)
     {
         bool state = false;
-        float distance = 1.1f;
         float offset = 0.3f;
         Vector3 pos = Vector3.zero;
 
@@ -154,7 +157,10 @@ public class ControllerPlayer : MonoBehaviour
             }
             state = Raycast(pos, -transform.up, distance);
             if (state)
+            {
+                m_CanCheck = true;
                 break;
+            }
         }
 
         return state;
@@ -167,14 +173,16 @@ public class ControllerPlayer : MonoBehaviour
             if (!m_GravityReticle.activeSelf)
                 m_GravityReticle.SetActive(true);
 
-            if (RaycastInfo(m_Camera.transform.position, m_Camera.transform.forward, out m_RotationHit, 1.5f))
+            if (RaycastInfo(m_Camera.transform.position, m_Camera.transform.forward, out m_RotationHit, 1.5f)
+                || RaycastInfo(transform.position, m_Rigidbody.velocity.normalized, out m_RotationHit, 1.5f))
             {
                 if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
                 {
                     UpdateGravity(m_RotationHit.normal);
                 }
             }
-            if (RaycastInfo(transform.position, m_Rigidbody.velocity.normalized, out m_RotationHit, 1.5f))
+
+            if (!GroundCheck() && !m_IsGrapple && Quaternion.Angle(m_GravityTransform.rotation, m_ToRotation) < 1.0f && CheckGravity())
             {
                 if (Physics.gravity != -m_RotationHit.normal * Toolbox.Instance.m_Gravity)
                 {
@@ -187,39 +195,103 @@ public class ControllerPlayer : MonoBehaviour
             if (m_GravityReticle.activeSelf)
                 m_GravityReticle.SetActive(false);
         }
+        if (m_WillRotate)
+            m_GravityTransform.rotation = Quaternion.Lerp(m_GravityTransform.rotation, m_ToRotation, 10 * Time.deltaTime);
+    }
+
+    bool CheckGravity()
+    {
+        if (m_CanCheck)
+        {
+            bool state = false;
+            float distance = 2.0f;
+            Vector3 pos = transform.position - transform.up;
+            Vector3 direction = Vector3.zero;
+
+            for (int i = 0; i < 4; i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        direction = transform.right;
+                        break;
+
+                    case 1:
+                        direction *= -1;
+                        break;
+
+                    case 2:
+                        direction = transform.forward;
+                        break;
+
+                    case 3:
+                        direction *= -1;
+                        break;
+                }
+                state = RaycastInfo(pos, direction, out m_RotationHit, distance);
+                if (state)
+                {
+                    m_SameObject = true;
+                    m_CanCheck = false;
+                    break;
+                }
+            }
+            return state;
+        }
+        else
+            return false;
     }
 
     void UpdateGravity(Vector3 dir)
     {
-        //Vector3 fwd = m_Camera.transform.forward;
-        //Quaternion rot = m_Camera.transform.rotation;
-        //Vector3 euler = m_Camera.transform.eulerAngles;
         Vector3 point = m_Camera.transform.position + m_Camera.transform.forward * 2;
-        m_GravityTransform.rotation = Quaternion.FromToRotation(Vector3.up, dir);
+        //m_GravityTransform.rotation = Quaternion.FromToRotation(Vector3.up, dir);
+        m_ToRotation = Quaternion.FromToRotation(Vector3.up, dir);
         transform.localPosition = Vector3.zero;
-        m_Rigidbody.velocity = transform.up.normalized * 5;
+        //m_Rigidbody.velocity = transform.up.normalized * 5;
         Physics.gravity = -dir * Toolbox.Instance.m_Gravity;
-        //m_Camera.transform.forward = fwd;
-        //m_Camera.transform.rotation = rot;
-        //m_Camera.transform.eulerAngles = euler;
-        m_Camera.transform.LookAt(point);
-        m_Camera.SetAbsoluteY(m_Camera.transform.localEulerAngles.x);
+        m_WillRotate = true;
+
+        if (m_SameObject)
+        {
+            m_Rigidbody.velocity *= 0.1f;
+            m_Rigidbody.AddForce(-transform.up * 25f, ForceMode.Impulse);
+            m_SameObject = false;
+        }
+        //m_Camera.transform.LookAt(point);
+        //m_Camera.SetAbsoluteY(m_Camera.transform.localEulerAngles.x);
     }
 
     void HookUpdate()
     {
         if (m_HookTransform && m_HookPrefab)
         {
+
             if (RaycastInfo(m_Camera.transform.position, m_Camera.transform.forward, out m_HookHit, 20))
             {
                 m_Reticle.SetActive(true);
-                m_HookTransform.transform.LookAt(m_HookHit.point);
+                m_HookTransform.LookAt(m_HookHit.point);
             }
             else
             {
                 m_Reticle.SetActive(false);
-                m_HookTransform.transform.localEulerAngles = Vector3.zero;
+                m_HookTransform.localEulerAngles = Vector3.zero;
             }
+
+            if (m_IsHookCD)
+            {
+                m_HookChargebar.sizeDelta = new Vector2(100 - (100 / m_HookCooldown) * m_HookTimer, m_HookChargebar.sizeDelta.y);
+
+                if (m_HookTimer > 0)
+                    m_HookTimer -= Time.deltaTime;
+                else
+                {
+                    m_HookTimer = m_HookCooldown;
+                    m_IsHookCD = false;
+                }
+            }
+            else
+                m_HookChargebar.sizeDelta = new Vector2(100, m_HookChargebar.sizeDelta.y);
 
             if (!m_IsGrapple)
             {
@@ -236,17 +308,6 @@ public class ControllerPlayer : MonoBehaviour
                         m_HookMode = 1;
                     }
                 }
-
-                if (m_IsHookCD)
-                {
-                    if (m_HookTimer > 0)
-                        m_HookTimer -= Time.deltaTime;
-                    else
-                    {
-                        m_HookTimer = m_HookCooldown;
-                        m_IsHookCD = false;
-                    }
-                }
             }
             else
             {
@@ -258,7 +319,7 @@ public class ControllerPlayer : MonoBehaviour
     void SpawnHook()
     {
         m_IsHookCD = true;
-        GameObject clone = (GameObject)Instantiate(m_HookPrefab, m_HookTransform.transform.position, m_HookTransform.transform.rotation);
+        GameObject clone = (GameObject)Instantiate(m_HookPrefab, m_HookTransform.position, m_HookTransform.rotation);
         if (clone.GetComponent<Hook>())
             m_Hook = clone.GetComponent<Hook>();
 
@@ -279,8 +340,6 @@ public class ControllerPlayer : MonoBehaviour
             m_Rigidbody.velocity = Vector3.zero;
             if (m_Hook)
                 Destroy(m_Hook.gameObject);
-
-            Debug.Log("Interrupted grapple!");
         }
     }
 
@@ -333,5 +392,10 @@ public class ControllerPlayer : MonoBehaviour
         Debug.DrawRay(position, direction * distance, hitCol);
 
         return hit;
+    }
+
+    public bool GetIsOnGround()
+    {
+        return m_IsOnGround;
     }
 }

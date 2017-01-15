@@ -19,4 +19,15 @@ public class PlayerCollision : MonoBehaviour
             m_Player.InterruptGrapple();
         }
     }
+
+    void OnCollisionStay(Collision col)
+    {
+        if (m_Player)
+        {
+            if (!m_Player.GetIsOnGround())
+            {
+                m_Player.InterruptGrapple();
+            }
+        }
+    }
 }

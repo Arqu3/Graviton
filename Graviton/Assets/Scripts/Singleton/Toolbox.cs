@@ -11,6 +11,12 @@ public class Toolbox : Singleton<Toolbox>
     //Make sure constructor cannot be used, true singleton
     protected Toolbox(){}
 
+    //Camera
+    public float m_SensitivityX = 3.0f;
+    public float m_SensitivityY = 1.0f;
+    public bool m_IsYInverted = false;
+
+    //Stuff
     public float m_Gravity = 20;
     public int m_CurrentCheckpoint = 1;
     public bool m_IsPaused = false;
